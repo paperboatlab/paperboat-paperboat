@@ -1,4 +1,4 @@
-"""Flagship Paperboat backend: 3D pixel sailing showcase.
+"""Flagship Paperboat station: 3D pixel sailing showcase.
 
 The paperboat, ocean waves, islands, and treasure are the domain state (domain/plant.py);
 the starter flow in descriptor.toml is an autonomous upwind tacking autopilot.
@@ -11,7 +11,7 @@ from domain.plant import PaperboatGame
 import paperboat
 
 if __name__ == "__main__":
-    paperboat.serve(paperboat.Backend(
+    paperboat.serve(paperboat.Station(
         engine="paperboat-paperboat",
         descriptor=Path(__file__).with_name("descriptor.toml"),
         state=PaperboatGame,

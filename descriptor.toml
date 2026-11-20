@@ -14,8 +14,8 @@ page = "station/index.html"
 use = "control/pid"
 defaults = { kp = 2.4, ki = 0.01, kd = 0.6 }
 
-# Interactive Dashboard with multi-tab layout and telemetry
-[dashboard]
+# Interactive Board with multi-tab layout and telemetry
+[board]
 columns = 6
 tabs = ["Helm", "Navigation"]
 
@@ -89,7 +89,7 @@ nodes = [
   { id = "sat-rudder", type = "saturation", params = { min = -1.0, max = 1.0 }, pos = [1100, 380] },
   { id = "rudder-1", type = "rudder", pos = [1260, 380] },
 
-  # Dashboard Helm Monitors
+  # Board Helm Monitors
   { id = "speed-gauge", type = "display", pos = [240, 180] },
   { id = "sail-disp", type = "display", pos = [1140, 120] },
   { id = "rudder-disp", type = "display", pos = [1180, 440] },
@@ -99,7 +99,7 @@ nodes = [
   { id = "speed-graph", type = "graph", pos = [420, 180] },
   { id = "heel-graph", type = "graph", pos = [420, 260] },
 
-  # Dashboard Navigation Monitors
+  # Board Navigation Monitors
   { id = "target-hdg-disp", type = "display", pos = [460, 300] },
   { id = "boat-hdg-disp", type = "display", pos = [240, 120] },
   { id = "dist-disp", type = "display", pos = [260, 460] },
