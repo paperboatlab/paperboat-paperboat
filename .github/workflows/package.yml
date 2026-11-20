@@ -1,4 +1,4 @@
-name: Verify & Package Backend
+name: Verify & Package Station
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
   verify-and-package:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout backend repository
+      - name: Checkout station repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -28,21 +28,21 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install jsonschema tomli
 
-      - name: Verify backend layout & manifest
+      - name: Verify station layout & manifest
         id: manifest
         run: |
           python3 -c "
           import tomllib, os
-          with open('backend.toml', 'rb') as f:
+          with open('station.toml', 'rb') as f:
               data = tomllib.load(f)
-          b = data['backend']
-          assert b['format'] == 0, f'Expected format 0, got {b[\"format\"]}'
-          assert b['name'] == 'paperboat-paperboat'
-          assert b['language'] == 'python'
-          assert os.path.isfile(b['descriptor'])
-          assert os.path.isfile(b['run'])
-          name = b['name']
-          version = b.get('version', '0.1.0')
+          s = data['station']
+          assert s['format'] == 0, f'Expected format 0, got {s[\"format\"]}'
+          assert s['name'] == 'paperboat-paperboat'
+          assert s['language'] == 'python'
+          assert os.path.isfile(s['descriptor'])
+          assert os.path.isfile(s['run'])
+          name = s['name']
+          version = s.get('version', '0.1.0')
           tag = f'v{version}' if not version.startswith('v') else version
           gh_out = os.environ.get('GITHUB_OUTPUT')
           if gh_out:
@@ -50,20 +50,20 @@ jobs:
                   out.write(f'name={name}\n')
                   out.write(f'version={version}\n')
                   out.write(f'tag={tag}\n')
-          print(f'backend.toml verified: {name} v{version} (release tag: {tag})')
+          print(f'station.toml verified: {name} v{version} (release tag: {tag})')
           "
 
-      - name: Package backend archive (.ppk)
+      - name: Package station archive (.pst)
         run: |
-          python3 scripts/package_backend.py pack .
-          ls -la *.ppk
-          sha256sum *.ppk > checksums.txt
+          python3 scripts/package_station.py pack .
+          ls -la *.pst
+          sha256sum *.pst > checksums.txt
           cat checksums.txt
 
       - name: Verify package unpack & integrity
         run: |
-          PKG_FILE=$(ls *.ppk | head -n 1)
-          python3 scripts/package_backend.py unpack "$PKG_FILE" --dir /tmp/test_unpack
+          PKG_FILE=$(ls *.pst | head -n 1)
+          python3 scripts/package_station.py unpack "$PKG_FILE" --dir /tmp/test_unpack
           echo "Verified $PKG_FILE extraction and SHA-256 integrity"
 
       - name: Upload package artifact
@@ -71,7 +71,7 @@ jobs:
         with:
           name: paperboat-package
           path: |
-            *.ppk
+            *.pst
             checksums.txt
 
       - name: Publish GitHub Release
@@ -83,7 +83,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            *.ppk
+            *.pst
             checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

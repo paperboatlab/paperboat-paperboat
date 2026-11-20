@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Packaging tool for Paperboat backend packages (.ppk).
+"""Packaging tool for Paperboat station packages (.pst).
 
-Packs a verified backend directory into a reproducible zip archive with PACKAGE.json
+Packs a verified station directory into a reproducible zip archive with PACKAGE.json
 and file integrity hashes, excluding build artifacts and ignore patterns.
 Unpacks and verifies file hashes.
 """
@@ -40,16 +40,16 @@ DEFAULT_IGNORES = [
     "*.so",
     "*.dylib",
     "*.dll",
-    "*.ppk",
+    "*.pst",
     "*.paperboat-pkg",
     "*.insyncdl",
     ".~*",
 ]
 
 
-def load_ignore_patterns(backend_dir: Path) -> list[str]:
+def load_ignore_patterns(station_dir: Path) -> list[str]:
     patterns = list(DEFAULT_IGNORES)
-    ignore_file = backend_dir / ".paperboatignore"
+    ignore_file = station_dir / ".paperboatignore"
     if ignore_file.is_file():
         for line in ignore_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -82,13 +82,13 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
-    if not backend_dir.is_dir():
-        return {"ok": False, "error": f"directory not found: {backend_dir}"}
+def cmd_pack(station_dir: Path, out_path: Path) -> dict:
+    if not station_dir.is_dir():
+        return {"ok": False, "error": f"directory not found: {station_dir}"}
 
-    manifest_file = backend_dir / "backend.toml"
+    manifest_file = station_dir / "station.toml"
     if not manifest_file.is_file():
-        return {"ok": False, "error": f"backend.toml missing in {backend_dir}"}
+        return {"ok": False, "error": f"station.toml missing in {station_dir}"}
 
     try:
         try:
@@ -97,22 +97,22 @@ def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
             import tomli as tomllib
         manifest = tomllib.loads(manifest_file.read_text(encoding="utf-8"))
     except Exception as e:
-        return {"ok": False, "error": f"failed to parse backend.toml: {e}"}
+        return {"ok": False, "error": f"failed to parse station.toml: {e}"}
 
-    backend_info = manifest.get("backend", {})
-    name = backend_info.get("name")
+    station_info = manifest.get("station", {})
+    name = station_info.get("name")
     if not name:
-        return {"ok": False, "error": "backend.toml missing 'name'"}
+        return {"ok": False, "error": "station.toml missing 'name'"}
 
-    version = backend_info.get("version", "0.1.0")
-    language = backend_info.get("language", "unknown")
-    engine = backend_info.get("engine", ">=0.1")
+    version = station_info.get("version", "0.1.0")
+    language = station_info.get("language", "unknown")
+    engine = station_info.get("engine", ">=0.1")
 
-    patterns = load_ignore_patterns(backend_dir)
+    patterns = load_ignore_patterns(station_dir)
 
     files_to_pack = []
-    for root, dirs, files in os.walk(backend_dir):
-        rel_root = os.path.relpath(root, backend_dir)
+    for root, dirs, files in os.walk(station_dir):
+        rel_root = os.path.relpath(root, station_dir)
         if rel_root != "." and is_ignored(rel_root, patterns):
             dirs[:] = []
             continue
@@ -124,7 +124,7 @@ def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
             rel_norm = rel_file.replace("\\", "/")
             if is_ignored(rel_norm, patterns):
                 continue
-            full_path = backend_dir / rel_file
+            full_path = station_dir / rel_file
             if full_path.is_file():
                 files_to_pack.append(rel_norm)
 
@@ -133,7 +133,7 @@ def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
     manifest_files = []
     total_bytes = 0
     for rel in files_to_pack:
-        p = backend_dir / rel
+        p = station_dir / rel
         size = p.stat().st_size
         total_bytes += size
         digest = sha256_file(p)
@@ -145,7 +145,7 @@ def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
         "version": version,
         "language": language,
         "engine": engine,
-        "manifest": "backend.toml",
+        "manifest": "station.toml",
         "files": manifest_files,
     }
 
@@ -153,7 +153,7 @@ def cmd_pack(backend_dir: Path, out_path: Path) -> dict:
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("PACKAGE.json", json.dumps(pkg_meta, indent=2))
         for rel in files_to_pack:
-            zf.write(backend_dir / rel, arcname=rel)
+            zf.write(station_dir / rel, arcname=rel)
 
     archive_digest = sha256_file(out_path)
     return {
@@ -223,9 +223,9 @@ def cmd_unpack(pkg_path: Path, dest_dir: Path, verify: bool) -> dict:
     }
 
 
-def read_manifest_info(backend_dir: Path) -> tuple[str, str]:
-    manifest_file = backend_dir / "backend.toml"
-    name = backend_dir.name
+def read_manifest_info(station_dir: Path) -> tuple[str, str]:
+    manifest_file = station_dir / "station.toml"
+    name = station_dir.name
     version = "0.1.0"
     if manifest_file.is_file():
         try:
@@ -234,26 +234,26 @@ def read_manifest_info(backend_dir: Path) -> tuple[str, str]:
             except ImportError:
                 import tomli as tomllib
             manifest = tomllib.loads(manifest_file.read_text(encoding="utf-8"))
-            backend_info = manifest.get("backend", {})
-            name = backend_info.get("name", name)
-            version = backend_info.get("version", version)
+            station_info = manifest.get("station", {})
+            name = station_info.get("name", name)
+            version = station_info.get("version", version)
         except Exception:
             pass
     return name, version
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Paperboat backend packager")
+    parser = argparse.ArgumentParser(description="Paperboat station packager")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     pack_p = subparsers.add_parser("pack")
-    pack_p.add_argument("pos_dir", nargs="?", type=Path, default=None, help="Backend directory")
-    pack_p.add_argument("--dir", type=Path, default=None, help="Backend directory to pack")
-    pack_p.add_argument("--out", type=Path, default=None, help="Output package path (.ppk)")
+    pack_p.add_argument("pos_dir", nargs="?", type=Path, default=None, help="Station directory")
+    pack_p.add_argument("--dir", type=Path, default=None, help="Station directory to pack")
+    pack_p.add_argument("--out", type=Path, default=None, help="Output package path (.pst)")
 
     unpack_p = subparsers.add_parser("unpack")
-    unpack_p.add_argument("pos_pkg", nargs="?", type=Path, default=None, help="Input package path (.ppk)")
-    unpack_p.add_argument("--pkg", type=Path, default=None, help="Input package path (.ppk)")
+    unpack_p.add_argument("pos_pkg", nargs="?", type=Path, default=None, help="Input package path (.pst)")
+    unpack_p.add_argument("--pkg", type=Path, default=None, help="Input package path (.pst)")
     unpack_p.add_argument("--dir", type=Path, required=True, help="Target extraction directory")
     unpack_p.add_argument("--verify", action="store_true", default=True, help="Verify file checksums")
 
@@ -264,7 +264,7 @@ def main():
         out_pkg = args.out
         if out_pkg is None:
             name, version = read_manifest_info(src_dir)
-            out_pkg = Path(f"{name}-{version}.ppk")
+            out_pkg = Path(f"{name}-{version}.pst")
         res = cmd_pack(src_dir, out_pkg.resolve())
     elif args.subcommand == "unpack":
         pkg_file = (args.pkg or args.pos_pkg)
