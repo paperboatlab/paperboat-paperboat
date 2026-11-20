@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paperboat-paperboat"
-version = "0.5.0"
+version = "0.4.1"
 description = "Paperboat flagship brand showcase: 3D pixel sailing game with autopilot blocks"
 license = {text = "GPL-3.0-only"}
 dependencies = ["paperboat"]
