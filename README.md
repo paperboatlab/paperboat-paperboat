@@ -7,7 +7,7 @@ proves custom HTML5 web stations, closed-loop upwind tacking control and aerodyn
 in Python. The station serves an orthographic Three.js archipelago view over HTTP and streams
 wind, boat state and waypoint telemetry to the Flow and Board over `paperboat/0`.
 
-**Docs:** <https://paperboatlab.github.io/paperboat/tutorials.html>
+**Docs:** <https://paperboatlab.org/paperboat/tutorials.html>
 
 ## Run
 
